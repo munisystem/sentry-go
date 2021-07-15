@@ -2,6 +2,7 @@ package sentrygin
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -51,6 +52,11 @@ func (h *handler) handle(ctx *gin.Context) {
 	if hub == nil {
 		hub = sentry.CurrentHub().Clone()
 	}
+	span := sentry.StartSpan(ctx, "http.server",
+		sentry.TransactionName(fmt.Sprintf("%s %s", ctx.Request.Method, ctx.Request.URL.Path)),
+		sentry.ContinueFromRequest(ctx.Request),
+	)
+	defer span.Finish()
 	hub.Scope().SetRequest(ctx.Request)
 	ctx.Set(valuesKey, hub)
 	defer h.recoverWithSentry(hub, ctx.Request)
